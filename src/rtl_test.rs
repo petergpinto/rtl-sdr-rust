@@ -1,7 +1,6 @@
 //https://osmocom.org/projects/rtl-sdr/repository/rtl-sdr/revisions/master/entry/src/rtl_test.c
 
 #[allow(clippy::needless_return, dead_code)]
-
 mod sdr_lib;
 
 use std::collections::HashMap;
@@ -47,14 +46,13 @@ fn main() -> Result<(), String> {
         warn!("No SDR devices have been identified");
     }
     //identified_sdr_devices should now contain a list of `SdrDevice` objects that have valid USB device handles.
-    
+
     for mut sdr in identified_sdr_devices {
         sdr.open();
         sdr.read();
+        loop {}
         sdr.close();
     }
-
-
 
     //Attempt to open each identified device
     //Report on device status

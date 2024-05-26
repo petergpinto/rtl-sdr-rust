@@ -1,7 +1,7 @@
 //https://osmocom.org/projects/rtl-sdr/repository/rtl-sdr/revisions/master/entry/src/librtlsdr.c
 
-use log::{error, info};
-use rusb::{Device, DeviceHandle, GlobalContext};
+use log::{debug, error, info};
+use rusb::{Device, DeviceHandle, GlobalContext, Language};
 pub mod constants;
 pub mod known_devices;
 
@@ -42,25 +42,31 @@ impl PartialEq for SdrDongle {
 
 pub struct SdrDevice {
     //https://osmocom.org/projects/rtl-sdr/repository/rtl-sdr/revisions/master/entry/src/librtlsdr.c#L89
-    manufacturer: &'static str,
-    product: &'static str,
+    manufacturer: Option<String>,
+    product: Option<String>,
+    serial_number: Option<String>,
     tuner: Option<Tuner>,
     async_status: SdrAsyncStatus,
     usb_device: Device<GlobalContext>,
     usb_device_handle: Option<DeviceHandle<GlobalContext>>,
     dongle: SdrDongle,
+    supported_languages: Option<Vec<Language>>,
+    language: Option<Language>,
 }
 
 impl SdrDevice {
     pub fn new(usb: Device<GlobalContext>, dongle_type: SdrDongle) -> SdrDevice {
         SdrDevice {
-            manufacturer: dongle_type.name.split("").collect::<Vec<&str>>()[0],
-            product: dongle_type.name,
+            manufacturer: None,
+            product: None,
+            serial_number: None,
             tuner: None,
             async_status: SdrAsyncStatus::Inactive,
             usb_device: usb,
             dongle: dongle_type,
             usb_device_handle: None,
+            language: None,
+            supported_languages: None,
         }
     }
 
@@ -75,20 +81,64 @@ impl SdrDevice {
     }
 
     pub fn open(&mut self) {
-        self.usb_device_handle = self.usb_device.open().ok();
+        let result = self.usb_device.open();
+        self.usb_device_handle = match result {
+            Ok(v) => {
+                info!("Opened successfully");
+                Some(v)
+            }
+            Err(e) => {
+                error!("Encountered error attempting to open USB device: {e}");
+                None
+            }
+        };
         info!("{:#?}", self.usb_device_handle);
+
+        //Get metadata from the device
+        if let Some(device_handle) = &self.usb_device_handle {
+            debug!(
+                "{:#?}",
+                device_handle.read_languages(std::time::Duration::from_secs(1))
+            );
+            let language = device_handle
+                .read_languages(std::time::Duration::from_secs(1))
+                .unwrap()[0];
+            let device = &device_handle.device().device_descriptor().unwrap();
+
+            let manufacturer = device_handle
+                .read_manufacturer_string(language, device, std::time::Duration::from_secs(1))
+                .unwrap_or("Unknown".to_string());
+            debug!("Manufacturer: {manufacturer}");
+            let product = device_handle
+                .read_product_string(language, device, std::time::Duration::from_secs(1))
+                .unwrap_or("Unknown".to_string());
+            debug!("Product Name: {product}");
+            let serial_number = device_handle
+                .read_serial_number_string(language, device, std::time::Duration::from_secs(1))
+                .unwrap_or("Unknown".to_string());
+            debug!("Serial number: {product}");
+
+            self.manufacturer = Some(manufacturer);
+            self.product = Some(product);
+            self.serial_number = Some(serial_number);
+        }
     }
 
     pub fn read(&mut self) {
+        //Read should be a public interface that translates the request to an individual dongle type
+
+        //Based on tuner type
+
         match &self.usb_device_handle {
             Some(device_handle) => {
-                let mut buffer: [u8; 1000] = [0; 1000]; 
-                match device_handle.read_bulk(1, &mut buffer, std::time::Duration::from_secs(1)) {
+                let mut buffer: [u8; 1000] = [0; 1000];
+                match device_handle.read_bulk(0x00, &mut buffer, std::time::Duration::from_secs(1))
+                {
                     Ok(v) => info!("Read to buffer {:#?}", buffer),
-                    Err(e) => error!("{e}"),
+                    Err(e) => error!("Error reading from Device handle: {e}"),
                 }
             }
-            None => ()
+            None => (),
         }
     }
 
