@@ -10,7 +10,7 @@ struct FreqencyRange {
     xtal_cap0p: u16
 }
 
-const FREQUENCY_RANGES: &'static [FreqencyRange] = &[
+const FREQUENCY_RANGES: &[FreqencyRange] = &[
     FreqencyRange {
         frequency: 0,
         open_d: 0x08,

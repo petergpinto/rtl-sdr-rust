@@ -1,6 +1,6 @@
 use super::SdrDongle;
 
-pub static KNOWN_DEVICES: &'static [SdrDongle] = &[
+pub static KNOWN_DEVICES: &[SdrDongle] = &[
     SdrDongle {
         vendor_id: 0x0bda,
         product_id: 0x2832,

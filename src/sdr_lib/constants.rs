@@ -11,7 +11,7 @@
  * Default FIR coefficients used for DAB/FM by the Windows driver,
  * the DVB driver uses different ones
  */
-static FIR_default: &'static [i32] = &[
+static FIR_DEFAULT: &[i32] = &[
     -54, -36, -41, -40, -32, -14, 14, 53, /* 8 bit signed */
     101, 156, 215, 273, 327, 372, 404, 421, /* 12 bit signed */
 ];

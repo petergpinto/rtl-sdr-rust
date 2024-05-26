@@ -1,5 +1,7 @@
 //https://osmocom.org/projects/rtl-sdr/repository/rtl-sdr/revisions/master/entry/src/rtl_test.c
 
+#[allow(clippy::needless_return, dead_code)]
+
 mod sdr_lib;
 
 use std::collections::HashMap;
@@ -35,16 +37,13 @@ fn main() -> Result<(), String> {
             vendor_id,
             name: "UNKNOWN",
         };
-        match KNOWN_DEVICES.iter().position(|v| v == &possible_sdr) {
-            Some(index) => {
-                let device = KNOWN_DEVICES[index];
-                info!("Identified SDR Device {:#?}", device);
-                identified_sdr_devices.push(SdrDevice::new(usb, device));
-            }
-            None => (),
+        if let Some(index) = KNOWN_DEVICES.iter().position(|v| v == &possible_sdr) {
+            let device = KNOWN_DEVICES[index];
+            info!("Identified SDR Device {:#?}", device);
+            identified_sdr_devices.push(SdrDevice::new(usb, device));
         }
     }
-    if identified_sdr_devices.len() == 0 {
+    if identified_sdr_devices.is_empty() {
         warn!("No SDR devices have been identified");
     }
     //identified_sdr_devices should now contain a list of `SdrDevice` objects that have valid USB device handles.

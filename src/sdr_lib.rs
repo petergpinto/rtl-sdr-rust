@@ -16,9 +16,9 @@ struct Tuner {
 
 enum SdrAsyncStatus {
     //https://osmocom.org/projects/rtl-sdr/repository/rtl-sdr/revisions/master/entry/src/librtlsdr.c#L63
-    RTLSDR_INACTIVE = 0,
-    RTLSDR_CANCELLING,
-    RTLSDR_RUNNING,
+    Inactive = 0,
+    Cancelling,
+    Running,
 }
 
 //https://osmocom.org/projects/rtl-sdr/repository/rtl-sdr/revisions/master/entry/src/librtlsdr.c#L300
@@ -32,12 +32,6 @@ pub struct SdrDongle {
 impl PartialEq for SdrDongle {
     fn eq(&self, other: &Self) -> bool {
         if self.product_id == other.product_id && self.vendor_id == other.vendor_id {
-            return true;
-        }
-        return false;
-    }
-    fn ne(&self, other: &Self) -> bool {
-        if self.product_id != other.product_id || self.vendor_id != other.vendor_id {
             return true;
         }
         return false;
@@ -63,7 +57,7 @@ impl SdrDevice {
             manufacturer: dongle_type.name.split("").collect::<Vec<&str>>()[0],
             product: dongle_type.name,
             tuner: None,
-            async_status: SdrAsyncStatus::RTLSDR_INACTIVE,
+            async_status: SdrAsyncStatus::Inactive,
             usb_device: usb,
             dongle: dongle_type,
             usb_device_handle: None,
@@ -90,8 +84,8 @@ impl SdrDevice {
             Some(device_handle) => {
                 let mut buffer: [u8; 1000] = [0; 1000]; 
                 match device_handle.read_bulk(1, &mut buffer, std::time::Duration::from_secs(1)) {
-                    Ok(v) => { info!("Read to buffer {:#?}", buffer); ()},
-                    Err(e) => { error!("{e}"); () },
+                    Ok(v) => info!("Read to buffer {:#?}", buffer),
+                    Err(e) => error!("{e}"),
                 }
             }
             None => ()
