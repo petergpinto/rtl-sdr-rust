@@ -3,7 +3,7 @@
 #[allow(clippy::needless_return, dead_code)]
 mod sdr_lib;
 
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 use log::{debug, error, info, trace, warn};
 use rusb::{self, Device, GlobalContext};
@@ -12,17 +12,11 @@ use crate::sdr_lib::SdrDevice;
 use sdr_lib::known_devices::KNOWN_DEVICES;
 mod tuner;
 
-fn main() -> Result<(), String> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     //Search devices
     info!("Attempting to retrive USB devices from host...");
-    let usb_devices = match rusb::devices() {
-        Ok(v) => v,
-        Err(e) => {
-            error!("Could not get a list of USB devices.");
-            return Err(e.to_string());
-        }
-    };
+    let usb_devices = rusb::devices()?;
 
     let mut identified_sdr_devices: Vec<sdr_lib::SdrDevice> = vec![];
     for usb in usb_devices.iter() {
@@ -48,10 +42,10 @@ fn main() -> Result<(), String> {
     //identified_sdr_devices should now contain a list of `SdrDevice` objects that have valid USB device handles.
 
     for mut sdr in identified_sdr_devices {
-        sdr.open();
+        sdr.open()?;
+        sdr.describe();
         sdr.read();
-        loop {}
-        sdr.close();
+        sdr.close()?;
     }
 
     //Attempt to open each identified device

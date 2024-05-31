@@ -1,6 +1,6 @@
 //https://osmocom.org/projects/rtl-sdr/repository/rtl-sdr/revisions/master/entry/src/librtlsdr.c
 
-use log::{debug, error, info};
+use log::{debug, error, info, trace};
 use rusb::{Device, DeviceHandle, GlobalContext, Language};
 pub mod constants;
 pub mod known_devices;
@@ -80,7 +80,7 @@ impl SdrDevice {
         unimplemented!()
     }
 
-    pub fn open(&mut self) {
+    pub fn open(&mut self) -> Result<(), rusb::Error>{
         let result = self.usb_device.open();
         self.usb_device_handle = match result {
             Ok(v) => {
@@ -118,9 +118,28 @@ impl SdrDevice {
                 .unwrap_or("Unknown".to_string());
             debug!("Serial number: {product}");
 
+            device_handle.detach_kernel_driver(0)?;
+            device_handle.claim_interface(0)?;
+
             self.manufacturer = Some(manufacturer);
             self.product = Some(product);
             self.serial_number = Some(serial_number);
+            
+        }
+        Ok(())
+    }
+
+    pub fn describe(&mut self) {
+        if let Some(device_handle) = &self.usb_device_handle {
+            for interface in device_handle.device().config_descriptor(0).unwrap().interfaces() {
+                for descriptor in interface.descriptors() {
+                    trace!("{:#?}", descriptor);
+                    for endpoint in descriptor.endpoint_descriptors() {
+                        trace!("{:#?}", endpoint);
+                    }                    
+                } 
+            }
+
         }
     }
 
@@ -131,8 +150,8 @@ impl SdrDevice {
 
         match &self.usb_device_handle {
             Some(device_handle) => {
-                let mut buffer: [u8; 1000] = [0; 1000];
-                match device_handle.read_bulk(0x00, &mut buffer, std::time::Duration::from_secs(1))
+                let mut buffer: [u8; 100000] = [0; 100000];
+                match device_handle.read_bulk(129, &mut buffer, std::time::Duration::from_secs(1))
                 {
                     Ok(v) => info!("Read to buffer {:#?}", buffer),
                     Err(e) => error!("Error reading from Device handle: {e}"),
@@ -142,7 +161,12 @@ impl SdrDevice {
         }
     }
 
-    pub fn close(&mut self) {
-        self.usb_device_handle = None
+    pub fn close(&mut self) -> Result<(), rusb::Error>{
+        if let Some(device_handle) = &self.usb_device_handle {
+            device_handle.release_interface(0)?;
+            device_handle.attach_kernel_driver(0)?;
+        }
+        self.usb_device_handle = None;
+        Ok(())
     }
 }
