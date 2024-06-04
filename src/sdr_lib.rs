@@ -149,6 +149,9 @@ impl SdrDevice {
 
         //Based on tuner type
 
+        //https://osmocom.org/projects/rtl-sdr/repository/rtl-sdr/revisions/master/entry/src/librtlsdr.c#L405
+        //https://osmocom.org/projects/rtl-sdr/repository/rtl-sdr/revisions/master/entry/src/librtlsdr.c#L859
+
         match &self.usb_device_handle {
             Some(device_handle) => {
                 let w_index = (6 << 8) | 0x10;
