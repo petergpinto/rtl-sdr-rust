@@ -143,6 +143,7 @@ impl SdrDevice {
         }
     }
 
+    
     pub fn read(&mut self) {
         //Read should be a public interface that translates the request to an individual dongle type
 
@@ -150,10 +151,25 @@ impl SdrDevice {
 
         match &self.usb_device_handle {
             Some(device_handle) => {
-                let mut buffer: [u8; 100000] = [0; 100000];
-                match device_handle.read_bulk(129, &mut buffer, std::time::Duration::from_secs(1))
+                let w_index = (6 << 8) | 0x10;
+                const EEPROM_ADDR: u16 = 0xa0;
+                let mut buffer: [u8; 1] = [1; 1];
+                match device_handle.write_control(rusb::request_type(rusb::Direction::Out, rusb::RequestType::Vendor, rusb::Recipient::Device), 0, EEPROM_ADDR, w_index, &buffer, std::time::Duration::from_secs(1))
                 {
-                    Ok(v) => info!("Read to buffer {:#?}", buffer),
+                    Ok(v) => info!("Wrote buffer {:#?} to x{EEPROM_ADDR:04x}", buffer),
+                    Err(e) => error!("Error reading from Device handle: {e}"),
+                }
+                let mut buffer: [u8; 16] = [1; 16]; //16 is largest size that works here 
+                let w_index = (6 << 8);
+                match device_handle.read_control(rusb::request_type(rusb::Direction::In, rusb::RequestType::Vendor, rusb::Recipient::Device), 0, EEPROM_ADDR, w_index, &mut buffer, std::time::Duration::from_secs(1))
+                {
+                    Ok(v) => info!("Read buffer {:#?} from x{EEPROM_ADDR:04x}", buffer),
+                    Err(e) => error!("Error reading from Device handle: {e}"),
+                }
+                let mut buffer: [u8; 16] = [1; 16]; //16 is largest size that works here 
+                match device_handle.read_control(rusb::request_type(rusb::Direction::In, rusb::RequestType::Vendor, rusb::Recipient::Device), 0, EEPROM_ADDR, w_index, &mut buffer, std::time::Duration::from_secs(1))
+                {
+                    Ok(v) => info!("Read buffer {:#?} from x{EEPROM_ADDR:04x}", buffer),
                     Err(e) => error!("Error reading from Device handle: {e}"),
                 }
             }
